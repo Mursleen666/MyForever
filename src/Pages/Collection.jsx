@@ -136,6 +136,7 @@ const Collection = () => {
                 key={index}
                 name={item.name}
                 id={item._id}
+                 slug={item.slug}
                 price={item.price}
                 image={item.image}
               />

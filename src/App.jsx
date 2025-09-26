@@ -34,7 +34,11 @@ const App = () => {
      <Route path='/Login' element={<Login/>} />
      <Route path='/Order' element={<Order/>} />
      <Route path='/PlaceOrder' element={<PlaceOrder/>}/>
-     <Route path='/product/:productId' element={<Product/>}/>
+      {/* Old pattern: only productId */}
+  <Route path='/product/:productId' element={<Product/>}/>
+
+  {/* New pattern: productId + slug */}
+  <Route path='/product/:productId/:slug' element={<Product/>}/>
      <Route path='/Contact' element={<Contact/>}/>
      
       

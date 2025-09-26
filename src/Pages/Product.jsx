@@ -11,10 +11,12 @@ const Product = () => {
   const [productData, setProductData] = useState(false);
   const [size, setSize] = useState('')
   const [image, setImage] = useState('')
+  const [slug, setSlug] = useState('')
 
   const fetchProductData = async () => {
     products.map((item) => {
       if (item._id == productId) {
+        setSlug(item.slug)
         setProductData(item)
         setImage(item.image[0])
         console.log(size)
@@ -23,8 +25,9 @@ const Product = () => {
         return null;
       }
     })
+    console.log(slug)
   }
-
+  
   useEffect(() => {
     fetchProductData()
   }, [productId, products])
