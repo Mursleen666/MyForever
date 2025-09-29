@@ -1,93 +1,78 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { ShopContext } from '../context/ShopContext';
+import React, { useEffect, useState } from 'react';
 import { assets } from '../assets/assets';
 import Title from '../components/Title';
 import ProductItem from '../components/ProductItem';
 
 const Collection = () => {
-  const { products, search, showSearch } = useContext(ShopContext);
+  const backEndUrl = import.meta.env.VITE_BACKEND_URL
   const [showFilter, setShowFilter] = useState(false);
-  const [filterProducts, setFilterProducts] = useState([]);
+  const [products, setProducts] = useState([]);
   const [category, setCategory] = useState([]);
   const [subCategory, setSubCategory] = useState([]);
-  const [sortType, setSortType] = useState('relavent');
+  const [sortType, setSortType] = useState('relevant');
+  const [search, setSearch] = useState(""); // simple search state
 
+  const [loading, setLoading] = useState(false);
+
+  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // Toggle category filter
   const toggleCategory = (e) => {
     if (category.includes(e.target.value)) {
       setCategory(prev => prev.filter(item => item !== e.target.value));
     } else {
       setCategory(prev => [...prev, e.target.value]);
     }
+    setCurrentPage(1);
   };
 
+  // Toggle subCategory filter
   const toggleSubCategory = (e) => {
     if (subCategory.includes(e.target.value)) {
       setSubCategory(prev => prev.filter(item => item !== e.target.value));
     } else {
       setSubCategory(prev => [...prev, e.target.value]);
     }
+    setCurrentPage(1);
   };
 
-  const applyFilter = () => {
-    let productCopy = products.slice();
+  // Fetch products from backend
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
 
-    if (showSearch && search) {
-      productCopy = productCopy.filter(item =>
-        item.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
+      // Build query params
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        sort: sortType,
+        search,
+      });
 
-    if (category.length > 0) {
-      productCopy = productCopy.filter(item => category.includes(item.category));
-    }
+      if (category.length > 0) queryParams.append("category", category.join(","));
+      if (subCategory.length > 0) queryParams.append("subCategory", subCategory.join(","));
 
-    if (subCategory.length > 0) {
-      productCopy = productCopy.filter(item => subCategory.includes(item.subCategory));
-    }
+      const res = await fetch(`${backEndUrl}/api/product/list?${queryParams.toString()}`);
+      const data = await res.json();
 
-    setFilterProducts(productCopy);
-  };
-
-  const sortProduct = () => {
-    let fpCopy = filterProducts.slice();
-    switch (sortType) {
-      case 'low-high':
-        setFilterProducts(fpCopy.sort((a, b) => a.price - b.price));
-        break;
-      case 'high-low':
-        setFilterProducts(fpCopy.sort((a, b) => b.price - a.price));
-        break;
-      default:
-        applyFilter();
-        break;
+      if (data.success) {
+        setProducts(data.data);
+        setTotalPages(data.totalPages);
+      }
+    } catch (err) {
+      console.error("Error fetching products:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Refetch when filters, sort, page, limit change
   useEffect(() => {
-    setFilterProducts(products);
-  }, []);
-
-  useEffect(() => {
-    sortProduct();
-  }, [sortType]);
-
-  useEffect(() => {
-    applyFilter();
-  }, [category, subCategory, search, showSearch, products]);
-
-  useEffect(() => {
-    setCurrentPage(1); // Reset to first page when filter changes
-  }, [filterProducts]);
-
-  // Pagination logic
-  const totalPages = Math.ceil(filterProducts.length / itemsPerPage);
-  const paginatedProducts = filterProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    fetchProducts();
+  }, [category, subCategory, sortType, search, currentPage, itemsPerPage]);
 
   return (
     <div className='flex flex-col sm:flex-row gap-1 sm:gap-10 pt-10 border-t'>
@@ -122,7 +107,7 @@ const Collection = () => {
         <div className='flex justify-between text-base sm:text-2xl mb-4'>
           <Title text1={"All"} text2={"COLLECTIONS"} />
           <select onChange={(e) => setSortType(e.target.value)} className='border-2 border-gray-300 text-sm px-2'>
-            <option value="relavent">Sort by: Relevant</option>
+            <option value="relevant">Sort by: Relevant</option>
             <option value="low-high">Sort by: Low-High</option>
             <option value="high-low">Sort by: High-Low</option>
           </select>
@@ -130,23 +115,24 @@ const Collection = () => {
 
         {/* Product Grid */}
         <div className='grid grid-col-2 md:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-6'>
-          {
-            paginatedProducts.map((item, index) => (
+          {loading ? (
+            <p>Loading...</p>
+          ) : (
+            products.map((item, index) => (
               <ProductItem
                 key={index}
                 name={item.name}
                 id={item._id}
-                 slug={item.slug}
+                slug={item.slug}
                 price={item.price}
                 image={item.image}
               />
             ))
-          }
+          )}
         </div>
 
         {/* Pagination Controls */}
         <div className='flex justify-between items-center mt-6 flex-wrap gap-4'>
-
           {/* Page Size Selector */}
           <div className='flex items-center gap-2 text-sm'>
             <span>Items per page:</span>
